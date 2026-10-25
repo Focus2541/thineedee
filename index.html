@@ -153,6 +153,27 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--su
 .sw .dots i:first-child{margin-left:0}
 .sw b{font-size:14.5px;display:block}
 .sw small{font-size:12px;color:var(--muted)}
+/* trip checklist + todo */
+#tripBox:empty,#todoBox:empty{display:none}
+.tcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.tlab{font-size:13px;font-weight:600;color:var(--muted)}
+.trow{display:flex;gap:8px;align-items:center}
+.trow input{flex:1;min-width:0}
+.linkbtn{border:0;background:none;color:var(--pine-ink);font-weight:600;font-size:13.5px;cursor:pointer;min-height:36px;padding:0 4px}
+.cklist{display:flex;flex-direction:column;gap:4px}
+.ck{display:flex;align-items:center;gap:10px;border-radius:10px;padding:2px 6px}
+.ck.on{background:var(--pine-soft)}
+.ck input{width:22px;height:22px;min-height:0;flex:none;accent-color:var(--pine);padding:0}
+.cklab{flex:1;min-width:0;text-align:left;border:0;background:none;cursor:pointer;min-height:44px;display:flex;flex-direction:column;justify-content:center;padding:4px 0}
+.cklab b{font-size:14.5px;font-weight:600;color:var(--ink)}
+.cklab span{font-size:12px;color:var(--muted)}
+.ck input:checked + .cklab b{text-decoration:line-through;color:var(--muted)}
+.todo{background:var(--pine-soft);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.todorow{display:flex;align-items:center;gap:8px}
+.todorow .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.todorow .tx b{font-size:15px}
+.todorow .tx span{font-size:12.5px;color:var(--muted)}
+.x{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;flex:none;font-size:16px}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
 </head>
@@ -174,6 +195,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--su
 
   <!-- FIND -->
   <section id="vFind" class="stack" hidden>
+    <div id="tripBox"></div>
     <div class="seg" id="findMode" role="group" aria-label="วิธีหา">
       <button type="button" data-fm="area">ยังไม่มีชื่อ หาจากเมือง</button>
       <button type="button" data-fm="name">รู้ชื่อแล้ว</button>
@@ -194,6 +216,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--su
     <input type="search" id="q" placeholder="ค้นหาชื่อ เมือง หรือสิ่งที่จดไว้" aria-label="ค้นหา">
     <div class="chips" id="typeChips" role="group" aria-label="ประเภท"></div>
     <div class="bar" id="tripBar" hidden><label for="tripFilter">ทริป</label><select id="tripFilter"></select></div>
+    <div id="todoBox"></div>
     <div id="list" class="stack"></div>
   </section>
 
@@ -344,7 +367,7 @@ function cardHtml(i){const T=TYPES[i.type]||TYPES.spot;const hl=(i.highlights||[
 function typeIcon(t){const p={stay:'<path d="M3 20V9l9-5 9 5v11M9 20v-6h6v6"/>',food:'<path d="M7 3v8a2 2 0 0 0 4 0V3M9 11v10M17 3c-2 2-2 6 0 8v10"/>',spot:'<path d="M3 20l7-12 4 6 2-3 5 9z"/>'}[t]||'';
   return`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${p}</svg>`}
 
-function renderList(){renderChips();const box=$('#list');
+function renderList(){renderChips();renderTodo();const box=$('#list');
   if(!ready()){box.innerHTML=`<div class="empty"><b>ยังไม่ได้เชื่อม Google Sheet</b>ตั้งค่าครั้งเดียว แล้วคุณกับแฟนจะเห็นรีวิวชุดเดียวกัน<div style="margin-top:12px"><button type="button" class="btn pri" id="goSetup">ไปตั้งค่า</button></div></div>`;$('#goSetup').onclick=()=>openSettings();$('#fab').hidden=true;return}
   const q=$('#q').value.trim().toLowerCase();
   const list=items.filter(i=>(typeFilter==='all'||i.type===typeFilter)&&(!tripFilter||(i.trip&&i.trip.id===tripFilter))&&
@@ -528,7 +551,7 @@ function tipsFor(){const out=[];const t=find.topics;
     out.push('อ่านรีวิว 3 ดาวก่อน มักบอกข้อดีข้อเสียตรงที่สุด และเช็กวันหยุดร้านกับว่ารับบัตรไหม')}
   if(find.type==='spot')out.push('เช็กวันปิดและเวลาเปิดล่าสุดใน Google Maps เพราะที่เที่ยวหลายที่เปลี่ยนเวลาตามฤดู');
   return out}
-function renderFind(){const area=find.mode==='area';if(!find.cc&&!find.ccSet)find.cc=nextTripCountry();
+function renderFind(){pickDefaultTrip();renderTripBox();const area=find.mode==='area';if(!find.cc&&!find.ccSet)find.cc=nextTripCountry();
   $('#findMode').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.fm===find.mode));
   $('#fq').value=area?find.a:find.q;$('#fqLabel').textContent=area?'เมืองหรือย่าน':'ชื่อที่พัก ร้าน หรือสถานที่';
   $('#fq').placeholder=area?'เมืองหรือย่าน เช่น คาวากุจิโกะ':'ชื่อที่พัก ร้าน หรือสถานที่';
@@ -563,6 +586,83 @@ $('#findCountry').onchange=e=>{find.cc=e.target.value;find.ccSet=true;renderFind
 $('#findTopics').onclick=e=>{const b=e.target.closest('[data-tp]');if(!b)return;const t=b.dataset.tp;find.topics=find.topics.includes(t)?find.topics.filter(x=>x!==t):[...find.topics,t];renderFind()};
 $('#recent').onclick=e=>{const b=e.target.closest('[data-rc]');if(!b)return;const r=store.get('tnd_recent',[])[+b.dataset.rc];if(!r)return;find.q=r.q;find.type=r.type;find.cc=r.cc;find.ccSet=true;find.mode='name';find.topics=[];renderFind()};
 $('#findOut').addEventListener('click',e=>{if(e.target.closest('[data-src]'))remember()});
+
+/* ---------- TripBudget link ----------
+   Both apps live on focus2541.github.io, so TripBudget's trips ('tb_v4') can be read here. Read only. */
+function tbFull(){const db=store.get('tb_v4',null);return db&&Array.isArray(db.trips)?db.trips.filter(t=>t&&t.id):[]}
+function addDaysISO(d,n){const[y,m,dd]=d.split('-').map(Number);return new Date(Date.UTC(y,m-1,dd+n)).toISOString().slice(0,10)}
+const todayISO=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const tEnd=t=>addDaysISO(t.startDate,Math.max(1,+t.days||1)-1);
+const cleanHotel=n=>String(n||'').replace(/^ที่พัก\s*/,'').trim();
+function tripHotels(t){const out=[];(t.expenses||[]).forEach(e=>{if(e&&e.cat==='hotel'){const n=cleanHotel(e.name);if(n)out.push({name:n,day:+e.day||0})}});
+  if(t.sos&&t.sos.hotel&&t.sos.hotel.trim())out.push({name:t.sos.hotel.trim(),day:0});
+  const seen=new Set();return out.filter(h=>{const k=h.name.toLowerCase();if(seen.has(k))return false;seen.add(k);return true})}
+function tripPlaces(t){const seen=new Set();return(t.plan||[]).map(p=>String(p.title||'').trim()).filter(n=>{const k=n.toLowerCase();if(!n||seen.has(k))return false;seen.add(k);return true}).slice(0,8)}
+const tripCfgAll=()=>store.get('tnd_tripcfg',{});
+function tripCfg(id){const c=tripCfgAll()[id]||{};return{cities:Array.isArray(c.cities)?c.cities:[],done:c.done||{},open:c.open!==false}}
+function setTripCfg(id,fn){const all=tripCfgAll();const c=tripCfg(id);fn(c);all[id]=c;store.set('tnd_tripcfg',all)}
+const dShort=d=>{if(!d)return'';const[y,m,dd]=d.split('-').map(Number);return`${dd} ${TH_M[m-1]}`};
+
+/* 1) find tab: "หารีวิวสำหรับทริปนี้" checklist */
+function pickDefaultTrip(){if(find.tripSet)return;const up=tbFull().filter(t=>t.startDate&&tEnd(t)>=todayISO()).sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  if(up[0]){find.trip=up[0].id;if(up[0].country&&!find.ccSet)find.cc=up[0].country}}
+function tripItems(t){const c=tripCfg(t.id),items=[];
+  c.cities.forEach(city=>['stay','food','spot'].forEach(ty=>items.push({k:`a|${ty}|${city}`,label:`${KIND[ty][0]}ใน${city}`,mode:'area',type:ty,val:city})));
+  tripHotels(t).forEach(h=>items.push({k:'h|'+h.name,label:h.name,mode:'name',type:'stay',val:h.name,src:'ที่พักใน TripBudget'}));
+  tripPlaces(t).forEach(n=>items.push({k:'p|'+n,label:n,mode:'name',type:'spot',val:n,src:'แผนเที่ยวใน TripBudget'}));
+  return items}
+function renderTripBox(){const box=$('#tripBox');const all=tbFull();
+  const list=all.filter(t=>t.startDate&&(tEnd(t)>=todayISO()||t.id===find.trip)).sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  if(!list.length){box.innerHTML='';return}
+  const t=all.find(x=>x.id===find.trip);
+  const sel=`<select id="tripSel" aria-label="ทริป"><option value="">ไม่เลือกทริป</option>${list.map(x=>`<option value="${esc(x.id)}"${t&&x.id===t.id?' selected':''}>${esc(x.name||'ทริปไม่มีชื่อ')} · ${dShort(x.startDate)}</option>`).join('')}</select>`;
+  if(!t){box.innerHTML=`<div class="tcard"><span class="tlab">หารีวิวสำหรับทริปจาก TripBudget</span>${sel}</div>`;return}
+  const c=tripCfg(t.id),items=tripItems(t),done=items.filter(i=>c.done[i.k]).length;
+  const areas=AREAS[t.country]||[];const chips=[...new Set([...areas.map(a=>a[0]),...c.cities])];
+  box.innerHTML=`<div class="tcard">
+    <div class="trow"><span class="tlab" style="flex:1">ทริป · ${esc(COUNTRIES[t.country]||'')} ${dShort(t.startDate)}–${dShort(tEnd(t))}</span>
+      <button type="button" class="linkbtn" id="tripToggle" aria-expanded="${c.open}">${c.open?'ซ่อน':'แสดงรายการ'}${items.length?` (${done}/${items.length})`:''}</button></div>
+    ${sel}
+    ${c.open?`<div class="tlab" style="margin-top:4px">เมืองที่จะไป</div>
+      <div class="recent" style="color:inherit">${chips.map(n=>`<button type="button" class="topic" data-city="${esc(n)}" aria-pressed="${c.cities.includes(n)}">${esc(n)}</button>`).join('')}</div>
+      <div class="trow"><label for="cityAdd" style="position:absolute;left:-9999px">เพิ่มเมือง</label><input id="cityAdd" placeholder="เมืองอื่น เช่น ทาคายามะ"><button type="button" class="btn" id="cityAddBtn">เพิ่ม</button></div>
+      ${items.length?`<div class="cklist">${items.map((i,n)=>`<div class="ck${find.cur===i.k?' on':''}"><input type="checkbox" id="ck${n}" data-ck="${n}"${c.done[i.k]?' checked':''} aria-label="อ่านแล้ว ${esc(i.label)}">
+        <button type="button" class="cklab" data-go="${n}"><b>${esc(i.label)}</b>${i.src?`<span>${esc(i.src)}</span>`:''}</button></div>`).join('')}</div>
+        <p class="hint">แตะชื่อเพื่อหารีวิว ติ๊กเมื่ออ่านแล้ว</p>`
+      :`<p class="hint">เลือกเมืองที่จะไปด้านบน แล้วจะได้รายการ ที่พัก ร้านอาหาร ที่เที่ยว ของแต่ละเมือง ที่พักและแผนเที่ยวที่ใส่ไว้ใน TripBudget จะขึ้นมาให้เองด้วย</p>`}`:''}
+  </div>`;
+  box._items=items;box._trip=t}
+$('#tripBox').addEventListener('change',e=>{const el=e.target;
+  if(el.id==='tripSel'){find.trip=el.value;find.tripSet=true;find.cur='';const t=tbFull().find(x=>x.id===el.value);if(t&&t.country){find.cc=t.country;find.ccSet=true}renderFind();return}
+  if(el.dataset.ck!=null){const box=$('#tripBox'),i=box._items[+el.dataset.ck];setTripCfg(box._trip.id,c=>{if(el.checked)c.done[i.k]=true;else delete c.done[i.k]});renderTripBox()}});
+$('#tripBox').addEventListener('click',e=>{const box=$('#tripBox'),t=box._trip;if(!t)return;
+  if(e.target.closest('#tripToggle')){setTripCfg(t.id,c=>c.open=!c.open);renderTripBox();return}
+  const cb=e.target.closest('[data-city]');if(cb){const n=cb.dataset.city;setTripCfg(t.id,c=>{c.cities=c.cities.includes(n)?c.cities.filter(x=>x!==n):[...c.cities,n]});renderTripBox();return}
+  if(e.target.closest('#cityAddBtn')){const v=$('#cityAdd').value.trim();if(v)setTripCfg(t.id,c=>{if(!c.cities.includes(v))c.cities.push(v)});renderTripBox();return}
+  const g=e.target.closest('[data-go]');if(g){const i=box._items[+g.dataset.go];find.mode=i.mode;if(i.mode==='area')find.a=i.val;else find.q=i.val;find.type=i.type;find.topics=[];find.cur=i.k;
+    if(t.country){find.cc=t.country;find.ccSet=true}renderFind();
+    $('#findOut').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}});
+$('#tripBox').addEventListener('keydown',e=>{if(e.target.id==='cityAdd'&&e.key==='Enter'){e.preventDefault();$('#cityAddBtn').click()}});
+
+/* 2) list tab: hotels from TripBudget that have no review yet */
+function todoHotels(){const names=new Set(items.map(i=>String(i.name||'').trim().toLowerCase()));const skip=store.get('tnd_skip',[]);const out=[];
+  tbFull().filter(t=>t.startDate&&t.startDate<=todayISO()).sort((a,b)=>b.startDate.localeCompare(a.startDate))
+    .forEach(t=>tripHotels(t).forEach(h=>{const k=t.id+'|'+h.name;if(!names.has(h.name.toLowerCase())&&!skip.includes(k))out.push({t,h,k})}));return out}
+function renderTodo(){const box=$('#todoBox');const q=$('#q').value.trim();
+  if(!ready()||q||(typeFilter!=='all'&&typeFilter!=='stay')){box.innerHTML='';return}
+  const todo=todoHotels();box._todo=todo;if(!todo.length){box.innerHTML='';return}
+  box.innerHTML=`<div class="todo"><div class="grp" style="margin:0">ที่พักจาก TripBudget ที่ยังไม่ได้รีวิว</div>${todo.slice(0,5).map((x,n)=>`<div class="todorow">
+    <div class="tx"><b>${esc(x.h.name)}</b><span>${esc(x.t.name||'ทริป')} · ${dShort(x.h.day>0?addDaysISO(x.t.startDate,x.h.day-1):x.t.startDate)}</span></div>
+    <button type="button" class="btn pri" data-todo="${n}">รีวิว</button><button type="button" class="x" data-skip="${n}" aria-label="ไม่ต้องรีวิว ${esc(x.h.name)}">×</button></div>`).join('')}</div>`}
+$('#todoBox').addEventListener('click',e=>{const box=$('#todoBox');const a=e.target.closest('[data-todo]'),s=e.target.closest('[data-skip]');
+  if(s){const k=box._todo[+s.dataset.skip].k;store.set('tnd_skip',[...store.get('tnd_skip',[]),k]);renderTodo();toast('ซ่อนแล้ว');return}
+  if(a){const{t,h}=box._todo[+a.dataset.todo];openEdit(null,{name:h.name,type:'stay',trip:{id:t.id,name:t.name||''},area:COUNTRIES[t.country]&&t.country!=='OTHER'?COUNTRIES[t.country]:'',
+    visitDate:h.day>0?addDaysISO(t.startDate,h.day-1):t.startDate})}});
+
+/* opened from TripBudget's card: ?trip=<id> */
+(function(){const tp=new URLSearchParams(location.search).get('trip');if(!tp)return;const t=tbFull().find(x=>x.id===tp);
+  find.trip=tp;find.tripSet=true;find.cur='';if(t&&t.country){find.cc=t.country;find.ccSet=true}homeTab='find';
+  if(t)setTripCfg(tp,c=>c.open=true);try{history.replaceState(null,'',location.pathname)}catch(e){}})();
 
 /* ---------- start ---------- */
 if(!ready()&&homeTab==='list')homeTab='find';goHome();if(ready())load(items.length>0);

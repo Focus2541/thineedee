@@ -1,6 +1,6 @@
 // ที่นี่ดี service worker — เปิดแอปได้แม้สัญญาณไม่ดี (ข้อมูลรีวิวล่าสุดเก็บไว้ในเครื่อง)
 // แก้ไฟล์ไหนแล้ว ให้เปลี่ยนเลขเวอร์ชันนี้ ผู้ใช้จะได้เวอร์ชันใหม่ตอนเปิดแอปครั้งถัดไป
-const CACHE = 'thineedee-v1.3.0';
+const CACHE = 'thineedee-v1.4.0';
 const CORE = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
