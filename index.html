@@ -158,8 +158,13 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--su
 
   <!-- FIND -->
   <section id="vFind" class="stack" hidden>
-    <label class="f" for="fq"><span>หารีวิวของที่ไหน</span></label>
-    <input id="fq" type="search" placeholder="ชื่อที่พัก ร้าน หรือสถานที่ เช่น ชื่อโรงแรม" autocomplete="off" style="margin-top:-8px">
+    <div class="seg" id="findMode" role="group" aria-label="วิธีหา">
+      <button type="button" data-fm="area">ยังไม่มีชื่อ หาจากเมือง</button>
+      <button type="button" data-fm="name">รู้ชื่อแล้ว</button>
+    </div>
+    <label class="f" for="fq" id="fqLabel" style="position:absolute;left:-9999px">ค้นหา</label>
+    <input id="fq" type="search" autocomplete="off">
+    <div class="recent" id="areaChips" hidden></div>
     <div class="recent" id="recent" hidden></div>
     <div class="chips" id="findType" role="group" aria-label="ประเภท"></div>
     <div class="bar"><label for="findCountry">ประเทศ</label><select id="findCountry"></select></div>
@@ -428,7 +433,20 @@ const TOPICS={
   stay:[['เห็นวิว','วิว','view'],['เห็นฟูจิ','เห็นฟูจิ','Fuji view','JP'],['ห้องไหนดี','ห้องไหนดี','which room'],['การเดินทาง','เดินทาง','access station'],['อาหารเช้า','อาหารเช้า','breakfast'],['ออนเซ็น','ออนเซ็น','onsen','JP']],
   food:[['เมนูเด็ด','เมนูแนะนำ','must order'],['ต้องจองไหม','จอง','reservation'],['คิวนานไหม','คิว','queue wait'],['ราคา','ราคา','price']],
   spot:[['มุมถ่ายรูป','จุดถ่ายรูป','photo spot'],['เวลาที่ควรไป','ไปช่วงไหนดี','best time to visit'],['ค่าเข้า','ค่าเข้า','entrance fee'],['วิธีไป','วิธีไป','how to get there']]};
-let find=store.get('tnd_find',{q:'',type:'stay',cc:'',topics:[]});
+let find=Object.assign({q:'',a:'',mode:'area',type:'stay',cc:'',topics:[]},store.get('tnd_find',{}));
+/* popular areas: [thai name, english name] — english goes into searches on foreign sites */
+const AREAS={JP:[['โตเกียว','Tokyo'],['ชินจูกุ','Shinjuku'],['อาซากุสะ','Asakusa'],['คาวากุจิโกะ','Kawaguchiko'],['ฮาโกเนะ','Hakone'],['เกียวโต','Kyoto'],['โอซาก้า','Osaka'],['นัมบะ','Namba'],['นาระ','Nara'],['ซัปโปโร','Sapporo'],['ฟุกุโอกะ','Fukuoka']],
+  KR:[['โซล','Seoul'],['เมียงดง','Myeongdong'],['ฮงแด','Hongdae'],['ปูซาน','Busan'],['เชจู','Jeju']],
+  TW:[['ไทเป','Taipei'],['จิ่วเฟิ่น','Jiufen'],['ไถจง','Taichung'],['เกาสง','Kaohsiung']],
+  HK:[['จิมซาจุ่ย','Tsim Sha Tsui'],['มงก๊ก','Mong Kok'],['เซ็นทรัล','Central Hong Kong']],
+  CN:[['เซี่ยงไฮ้','Shanghai'],['ปักกิ่ง','Beijing'],['เฉิงตู','Chengdu'],['ฉงชิ่ง','Chongqing']],
+  SG:[['มารีน่าเบย์','Marina Bay'],['ออร์ชาร์ด','Orchard'],['เซนโตซ่า','Sentosa']],
+  VN:[['ดานัง','Da Nang'],['ฮอยอัน','Hoi An'],['ฮานอย','Hanoi'],['ซาปา','Sapa'],['โฮจิมินห์','Ho Chi Minh City']],
+  AU:[['ซิดนีย์','Sydney'],['เมลเบิร์น','Melbourne'],['โกลด์โคสต์','Gold Coast']],
+  NZ:[['ควีนส์ทาวน์','Queenstown'],['โอ๊คแลนด์','Auckland'],['ไครสต์เชิร์ช','Christchurch'],['เทคาโป','Tekapo']],
+  TH:[['เชียงใหม่','Chiang Mai'],['ปาย','Pai'],['เชียงราย','Chiang Rai'],['ภูเก็ต','Phuket'],['เกาะสมุย','Koh Samui'],['เขาใหญ่','Khao Yai']]};
+const KIND={stay:['ที่พัก','hotels','ที่พัก'],food:['ร้านอาหาร','restaurants','ร้านอร่อย'],spot:['ที่เที่ยว','things to do','ที่เที่ยว']};
+const areaEn=a=>{for(const k in AREAS){const f=AREAS[k].find(x=>x[0]===a.trim());if(f)return f[1]}return a.trim()};
 const gq=(q)=>'https://www.google.com/search?q='+encodeURIComponent(q);
 const site=(d,q)=>gq(q+' site:'+d);
 function nextTripCountry(){const db=store.get('tb_v4',null);if(!db||!Array.isArray(db.trips))return'';const today=new Date().toISOString().slice(0,10);
@@ -447,8 +465,21 @@ function sourcesFor(){const n=find.q.trim(),T=TOPICS[find.type].filter(t=>find.t
     reddit:{name:'Reddit',url:site('reddit.com',qen)},
     ta:{name:'TripAdvisor',url:site('tripadvisor.com',n)},
     yt:{name:'YouTube',url:'https://www.youtube.com/results?search_query='+encodeURIComponent(qth+' รีวิว')}};
-  const local=cc==='JP'?'tabelog':cc==='KR'?'naver':cc==='CN'?'dianping':'';
-  if(find.type==='stay')return[['คนพักจริง · เชื่อได้ที่สุด',[S.agoda,S.booking,S.maps]],['รีวิวยาว ภาษาไทย',[S.pantip,S.blog]],['ต่างชาติ · วิดีโอยาว',[S.reddit,S.ta,S.yt],1]];
+  S.wongnai={ic:'W',name:'Wongnai',why:'รีวิวร้านในไทยจากคนกินจริง',url:site('wongnai.com',n)};
+  if(find.mode==='area'){const a=find.a.trim(),ae=areaEn(a),[kTh,kEn,kTh2]=KIND[find.type];
+    const thq=`${kTh2} ${a} ${th} แนะนำ`.replace(/\s+/g,' ').trim(),enq=`best ${kEn} ${ae} ${en}`.replace(/\s+/g,' ').trim();
+    Object.assign(S.maps,{why:'ลิสต์พร้อมดาวและรูป เทียบหลายที่ในแผนที่เดียว',url:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(`${kEn} in ${ae}`)});
+    Object.assign(S.agoda,{why:'เรียงตามคะแนนรีวิวได้ · กรองเฉพาะ 8.5+',url:site('agoda.com',`${ae} ${kEn} ${en}`.trim())});
+    Object.assign(S.booking,{why:'กรองคะแนนรีวิว "ดีเยี่ยม 9+" ได้',url:site('booking.com',`${ae} ${kEn} ${en}`.trim())});
+    Object.assign(S.tabelog,{why:'จัดอันดับร้านในย่านนี้ตามคะแนนคนญี่ปุ่น',url:gq(`${ae} tabelog ranking`)});
+    Object.assign(S.naver,{why:'ร้านดังในย่านนี้ที่คนเกาหลีไปจริง',url:'https://map.naver.com/p/search/'+encodeURIComponent(ae+' 맛집')});
+    Object.assign(S.dianping,{url:site('dianping.com',ae)});
+    Object.assign(S.wongnai,{why:'จัดอันดับร้านในย่านนี้',url:site('wongnai.com',`${kTh2} ${a}`)});
+    Object.assign(S.pantip,{why:thq,url:site('pantip.com',thq)});Object.assign(S.blog,{why:thq,url:gq(thq)});
+    Object.assign(S.reddit,{url:site('reddit.com',enq)});Object.assign(S.ta,{url:site('tripadvisor.com',`${ae} ${kEn}`)});
+    Object.assign(S.yt,{url:'https://www.youtube.com/results?search_query='+encodeURIComponent(thq)})}
+  const local=cc==='JP'?'tabelog':cc==='KR'?'naver':cc==='CN'?'dianping':cc==='TH'?'wongnai':'';
+  if(find.type==='stay')return[[find.mode==='area'?'เทียบหลายที่ · เรียงตามรีวิว':'คนพักจริง · เชื่อได้ที่สุด',[S.agoda,S.booking,S.maps]],['รีวิวยาว ภาษาไทย',[S.pantip,S.blog]],['ต่างชาติ · วิดีโอยาว',[S.reddit,S.ta,S.yt],1]];
   if(find.type==='food')return[[local?'แนะนำสำหรับ'+COUNTRIES[cc]:'รีวิวจากคนกินจริง',local?[Object.assign({top:1},S[local]),S.maps]:[S.maps]],['รีวิวยาว ภาษาไทย',[S.pantip,S.blog]],['ต่างชาติ · วิดีโอยาว',[S.reddit,S.ta,S.yt],1]];
   return[['ภาพรวมและรูปจริง',[S.maps,Object.assign({ic:'T',why:'คะแนนและช่วงเวลาที่คนแนะนำ'},S.ta)]],['รีวิวยาว ภาษาไทย',[S.pantip,S.blog]],['ต่างชาติ · วิดีโอยาว',[S.reddit,S.yt],1]]}
 function tipsFor(){const out=[];const t=find.topics;
@@ -458,34 +489,40 @@ function tipsFor(){const out=[];const t=find.topics;
     out.push('อ่านรีวิว 3 ดาวก่อน มักบอกข้อดีข้อเสียตรงที่สุด และเช็กวันหยุดร้านกับว่ารับบัตรไหม')}
   if(find.type==='spot')out.push('เช็กวันปิดและเวลาเปิดล่าสุดใน Google Maps เพราะที่เที่ยวหลายที่เปลี่ยนเวลาตามฤดู');
   return out}
-function renderFind(){
-  $('#fq').value=find.q;
+function renderFind(){const area=find.mode==='area';if(!find.cc&&!find.ccSet)find.cc=nextTripCountry();
+  $('#findMode').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.fm===find.mode));
+  $('#fq').value=area?find.a:find.q;$('#fqLabel').textContent=area?'เมืองหรือย่าน':'ชื่อที่พัก ร้าน หรือสถานที่';
+  $('#fq').placeholder=area?'เมืองหรือย่าน เช่น คาวากุจิโกะ':'ชื่อที่พัก ร้าน หรือสถานที่';
+  const ac=AREAS[find.cc]||[];$('#areaChips').hidden=!area||!ac.length;
+  $('#areaChips').innerHTML='ย่านยอดฮิต'+ac.map(x=>`<button type="button" data-ar="${esc(x[0])}">${esc(x[0])}</button>`).join('');
   $('#findType').innerHTML=Object.entries(TYPES).map(([k,v])=>`<button type="button" class="chip" data-ft="${k}" aria-pressed="${find.type===k}">${v.th}</button>`).join('');
-  if(!find.cc&&!find.ccSet)find.cc=nextTripCountry();
   $('#findCountry').innerHTML='<option value="">ไม่ระบุ</option>'+Object.entries(COUNTRIES).map(([k,v])=>`<option value="${k}"${k===find.cc?' selected':''}>${v}</option>`).join('');
   const topics=TOPICS[find.type].filter(t=>!t[3]||t[3]===find.cc);find.topics=find.topics.filter(x=>topics.some(t=>t[0]===x));
   $('#findTopics').innerHTML=topics.map(t=>`<button type="button" class="topic" data-tp="${esc(t[0])}" aria-pressed="${find.topics.includes(t[0])}">${esc(t[0])}</button>`).join('');
-  const rec=store.get('tnd_recent',[]);$('#recent').hidden=!rec.length||!!find.q.trim();
+  const rec=store.get('tnd_recent',[]);$('#recent').hidden=area||!rec.length||!!find.q.trim();
   $('#recent').innerHTML='ล่าสุด'+rec.map((r,n)=>`<button type="button" data-rc="${n}">${esc(r.q)}</button>`).join('');
   renderFindOut();store.set('tnd_find',find)}
-function renderFindOut(){const box=$('#findOut');const n=find.q.trim();
-  if(!n){box.innerHTML=`<div class="empty"><b>พิมพ์ชื่อที่จะไป</b>แอปจะเตรียมคำค้นให้ทุกแหล่ง เรียงจากแหล่งที่เชื่อได้ที่สุด แตะแล้วเปิดอ่านได้เลย</div>`;return}
+function renderFindOut(){const box=$('#findOut');const area=find.mode==='area';const n=(area?find.a:find.q).trim();
+  if(!n){box.innerHTML=area?`<div class="empty"><b>เลือกเมืองหรือย่านที่จะไป</b>แอปจะเปิดหน้าที่รวมหลายที่ให้เทียบรีวิว เช่น ลิสต์${KIND[find.type][0]}ในแผนที่ หรือกระทู้แนะนำใน Pantip</div>`
+    :`<div class="empty"><b>พิมพ์ชื่อที่จะไป</b>แอปจะเตรียมคำค้นให้ทุกแหล่ง เรียงจากแหล่งที่เชื่อได้ที่สุด แตะแล้วเปิดอ่านได้เลย</div>`;return}
   const row=s=>`<a class="src${s.top?' top':''}" href="${esc(s.url)}" target="_blank" rel="noopener" data-src="1"><span class="ic${s.th?' th':''}">${esc(s.ic)}</span>
     <span class="tx"><b>${esc(s.name)}</b>${s.code?`<code>${esc(s.why)}</code>`:`<span>${esc(s.why)}</span>`}</span>
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="color:var(--muted);flex:none"><path d="M7 17L17 7M9 7h8v8"/></svg></a>`;
   let h=sourcesFor().map(([title,list,compact])=>`<div class="grp">${esc(title)}</div>`+(compact?`<div class="srcrow">${list.map(s=>`<a class="src" href="${esc(s.url)}" target="_blank" rel="noopener" data-src="1">${esc(s.name)}</a>`).join('')}</div>`:list.map(row).join(''))).join('');
   if(find.type==='food'&&find.cc==='JP')h+=`<div class="grp">วิธีอ่านคะแนน Tabelog</div><div class="scale"><span><b>3.0–3.4</b>ร้านทั่วไป</span><span style="background:var(--pine-soft);color:var(--pine-ink)"><b>3.5–3.9</b>ดีมาก</span><span style="background:#1F4D3A;color:#fff"><b>4.0+</b>ระดับท็อป</span></div>`;
   h+=tipsFor().map(t=>`<div class="tip">${esc(t)}</div>`).join('');
-  h+=`<button type="button" class="btn pri block" id="toNote">อ่านแล้ว จดสรุปเก็บไว้</button>`;
-  box.innerHTML=h;
+  h+=area?`<p class="hint">เจอที่ถูกใจแล้ว แตะ "รู้ชื่อแล้ว" แล้วพิมพ์ชื่อ เพื่ออ่านรีวิวของที่นั้นโดยเฉพาะ</p>`:`<button type="button" class="btn pri block" id="toNote">อ่านแล้ว จดสรุปเก็บไว้</button>`;
+  box.innerHTML=h;if(area)return;
   $('#toNote').onclick=()=>{if(!ready()){toast('เชื่อม Google Sheet ก่อน ถึงจะจดเก็บไว้ได้');openSettings();return}
     openEdit(null,{name:n,type:find.type,area:COUNTRIES[find.cc]&&find.cc!=='OTHER'?COUNTRIES[find.cc]:''})}}
-function remember(){const q=find.q.trim();if(!q)return;let r=store.get('tnd_recent',[]).filter(x=>x.q!==q);r.unshift({q,type:find.type,cc:find.cc});store.set('tnd_recent',r.slice(0,6))}
-let ft;$('#fq').oninput=e=>{find.q=e.target.value;clearTimeout(ft);ft=setTimeout(()=>{$('#recent').hidden=true;renderFindOut();store.set('tnd_find',find)},200)};
+function remember(){const q=find.q.trim();if(!q||find.mode!=='name')return;let r=store.get('tnd_recent',[]).filter(x=>x.q!==q);r.unshift({q,type:find.type,cc:find.cc});store.set('tnd_recent',r.slice(0,6))}
+let ft;$('#fq').oninput=e=>{if(find.mode==='area')find.a=e.target.value;else find.q=e.target.value;clearTimeout(ft);ft=setTimeout(()=>{$('#recent').hidden=true;renderFindOut();store.set('tnd_find',find)},200)};
+$('#findMode').onclick=e=>{const b=e.target.closest('[data-fm]');if(!b)return;find.mode=b.dataset.fm;renderFind();$('#fq').focus()};
+$('#areaChips').onclick=e=>{const b=e.target.closest('[data-ar]');if(!b)return;find.a=b.dataset.ar;renderFind()};
 $('#findType').onclick=e=>{const b=e.target.closest('[data-ft]');if(!b)return;find.type=b.dataset.ft;find.topics=[];renderFind()};
 $('#findCountry').onchange=e=>{find.cc=e.target.value;find.ccSet=true;renderFind()};
 $('#findTopics').onclick=e=>{const b=e.target.closest('[data-tp]');if(!b)return;const t=b.dataset.tp;find.topics=find.topics.includes(t)?find.topics.filter(x=>x!==t):[...find.topics,t];renderFind()};
-$('#recent').onclick=e=>{const b=e.target.closest('[data-rc]');if(!b)return;const r=store.get('tnd_recent',[])[+b.dataset.rc];if(!r)return;find.q=r.q;find.type=r.type;find.cc=r.cc;find.ccSet=true;find.topics=[];renderFind()};
+$('#recent').onclick=e=>{const b=e.target.closest('[data-rc]');if(!b)return;const r=store.get('tnd_recent',[])[+b.dataset.rc];if(!r)return;find.q=r.q;find.type=r.type;find.cc=r.cc;find.ccSet=true;find.mode='name';find.topics=[];renderFind()};
 $('#findOut').addEventListener('click',e=>{if(e.target.closest('[data-src]'))remember()});
 
 /* ---------- start ---------- */
