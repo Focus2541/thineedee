@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ที่นี่ดี</title>
+<meta name="description" content="สมุดรีวิวที่พัก ร้านอาหาร และที่เที่ยวของเรา">
+<meta name="theme-color" content="#F4F6F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111815" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600&family=Sarabun:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column of cards (max 640px), sticky top bar, floating "รีวิวที่นี่" button; views swap in place. */
+:root{
+  --bg:#F4F6F3; --surface:#FFFFFF; --surface-2:#EBF0EC; --ink:#1A2420; --ink-2:#3D4943; --muted:#59665F; --line:#D5DDD7;
+  --pine:#2E6B52; --pine-ink:#1F4D3A; --pine-soft:#E3EFE8; --on-pine:#FFFFFF; --star:#8A5A00; --star-fill:#C98A12; --danger:#B3261E;
+  --sky:#DCE6EE; --sand:#EFE4D6; --rose:#F1DEDA;
+  --f-display:"Prompt","Sarabun",system-ui,sans-serif; --f-body:"Sarabun",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111815; --surface:#18221E; --surface-2:#22302A; --ink:#E6EDE9; --ink-2:#C3CEC8; --muted:#97A59D; --line:#2C3A33;
+  --pine:#5FB08A; --pine-ink:#9ED6BA; --pine-soft:#1F3A2E; --on-pine:#0C1A13; --star:#E7B54A; --star-fill:#E7B54A; --danger:#F2867E;
+  --sky:#23323D; --sand:#3A3127; --rose:#3B2A27; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111815; --surface:#18221E; --surface-2:#22302A; --ink:#E6EDE9; --ink-2:#C3CEC8; --muted:#97A59D; --line:#2C3A33;
+  --pine:#5FB08A; --pine-ink:#9ED6BA; --pine-soft:#1F3A2E; --on-pine:#0C1A13; --star:#E7B54A; --star-fill:#E7B54A; --danger:#F2867E;
+  --sky:#23323D; --sand:#3A3127; --rose:#3B2A27; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.55;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg)}
+.top .wrap{display:flex;align-items:center;gap:10px;padding-block:12px}
+.brand{font-family:var(--f-display);font-weight:600;font-size:26px;line-height:1.1;margin:0;flex:1;min-width:0}
+.brand small{display:block;font:400 13.5px var(--f-body);color:var(--muted)}
+.icon-btn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;flex:none}
+.icon-btn svg{width:20px;height:20px}
+main{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+.stack{display:flex;flex-direction:column;gap:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:500;font-size:14.5px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.bar select{width:auto;flex:1;min-width:150px}
+input,select,textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--surface)}
+textarea{min-height:90px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--muted)}
+label.f > span{font-weight:600;color:var(--ink)}
+.banner{background:var(--pine-soft);color:var(--pine-ink);border-radius:12px;padding:10px 14px;font-size:14px}
+.banner.err{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;text-align:left;padding:0;width:100%}
+.card .ph{height:150px;background:var(--sky) center/cover no-repeat}
+.card .bd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px}
+.row{display:flex;gap:12px;align-items:center;padding:12px 14px}
+.row .th{width:68px;height:68px;border-radius:12px;flex:none;background:var(--sand) center/cover no-repeat;display:grid;place-items:center;color:var(--muted)}
+.meta{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.type{font-size:12.5px;font-weight:600;letter-spacing:.03em;color:var(--pine)}
+.stars{font-weight:600;color:var(--star);font-size:13.5px}
+.name{font-family:var(--f-display);font-weight:500;font-size:17px;line-height:1.3;margin:0}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:12.5px;background:var(--pine-soft);color:var(--pine-ink);border-radius:6px;padding:2px 8px}
+.line1{font-size:14px;color:var(--ink-2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.empty{border:1px dashed var(--line);border-radius:16px;padding:20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));min-height:54px;padding:0 22px;border-radius:16px;border:0;background:var(--pine);color:var(--on-pine);font:600 16px var(--f-display);display:flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.18);z-index:6}
+/* detail */
+.gallery{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:16px}
+.gallery img{height:240px;max-width:88%;flex:none;object-fit:cover;border-radius:16px;scroll-snap-align:start;background:var(--sky)}
+.gallery img:only-child{max-width:100%;width:100%}
+.title-lg{font-family:var(--f-display);font-weight:600;font-size:24px;line-height:1.25;margin:0;text-wrap:balance}
+.keep{background:#1F4D3A;color:#FFFFFF;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.keep h3{margin:0;font-size:12.5px;letter-spacing:.06em;font-weight:600;color:#BFE0CF}
+.keep .it{display:flex;flex-direction:column;gap:1px}
+.keep .it b{font-size:12.5px;font-weight:600;color:#BFE0CF}
+.subs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sub{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;gap:8px}
+.sub b{color:var(--star)}
+.note{white-space:pre-wrap;color:var(--ink-2)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink)}
+.btn.pri{background:var(--pine);color:var(--on-pine);border-color:var(--pine)}
+.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}
+.btn.block{width:100%;justify-content:center;min-height:52px;font:600 16px var(--f-display)}
+.btn:disabled{opacity:.55;cursor:default}
+/* form */
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;min-height:44px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:500;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:600}
+.starpick{display:flex;gap:2px}
+.starpick button{width:44px;height:44px;border:0;background:none;font-size:30px;line-height:1;color:var(--line);cursor:pointer;padding:0}
+.starpick button.on{color:var(--star-fill)}
+.photos{display:flex;gap:8px;flex-wrap:wrap}
+.photos .p{width:84px;height:84px;border-radius:12px;background:var(--sky) center/cover no-repeat;position:relative}
+.photos .p button{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:8px;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer}
+.photos .add{width:84px;height:84px;border-radius:12px;border:1px dashed var(--muted);background:var(--surface);display:grid;place-items:center;color:var(--muted);cursor:pointer;font-size:13px;text-align:center}
+.hl{display:flex;flex-direction:column;gap:8px}
+.hlrow{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:6px;align-items:end}
+.hlrow label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--pine-ink)}
+.subpick{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;font-size:14.5px}
+.mini{display:flex;gap:4px}
+.mini button{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:600}
+.mini button[aria-pressed="true"]{background:var(--star-fill);border-color:var(--star-fill);color:#1A1206}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:calc(100% - 32px)}
+.confirm{background:color-mix(in srgb,var(--danger) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--danger) 40%,var(--line));border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+ol.guide{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <button class="icon-btn" id="back" aria-label="กลับ" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <h1 class="brand" id="title">ที่นี่ดี<small>สมุดจดที่พัก ร้าน และที่เที่ยวของเรา</small></h1>
+    <button class="icon-btn" id="refresh" aria-label="โหลดใหม่"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/></svg></button>
+    <button class="icon-btn" id="openSettings" aria-label="ตั้งค่า"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- LIST -->
+  <section id="vList" class="stack">
+    <div id="status" class="banner" hidden></div>
+    <input type="search" id="q" placeholder="ค้นหาชื่อ เมือง หรือสิ่งที่จดไว้" aria-label="ค้นหา">
+    <div class="chips" id="typeChips" role="group" aria-label="ประเภท"></div>
+    <div class="bar" id="tripBar" hidden><label for="tripFilter">ทริป</label><select id="tripFilter"></select></div>
+    <div id="list" class="stack"></div>
+  </section>
+
+  <!-- DETAIL -->
+  <section id="vDetail" class="stack" hidden></section>
+
+  <!-- EDIT -->
+  <form id="vEdit" class="stack" hidden autocomplete="off">
+    <div class="seg" id="fType" role="group" aria-label="ประเภท"></div>
+    <label class="f"><span>ชื่อสถานที่</span><input id="fName" required placeholder="เช่น เรียวกังริมทะเลสาบคาวากุจิโกะ"></label>
+    <label class="f"><span>เมือง / ย่าน</span><input id="fArea" placeholder="เช่น คาวากุจิโกะ, ญี่ปุ่น"></label>
+    <div class="stack" style="gap:6px">
+      <label class="f" for="fMaps"><span>ตำแหน่ง</span></label>
+      <input id="fMaps" placeholder="วางลิงก์ Google Maps (ไม่บังคับ)">
+      <div class="actions"><button type="button" class="btn" id="useGps">ใช้ตำแหน่งตอนนี้</button><span class="hint" id="gpsInfo"></span></div>
+    </div>
+    <div class="stack" style="gap:8px">
+      <span style="font-weight:600">รูป</span>
+      <div class="photos" id="fPhotos"></div>
+      <input type="file" id="fFile" accept="image/*" multiple hidden>
+    </div>
+    <div class="stack" style="gap:4px"><span style="font-weight:600">ให้คะแนน</span><div class="starpick" id="fStars" role="group" aria-label="คะแนน"></div></div>
+    <div class="stack" style="gap:8px">
+      <span style="font-weight:600">จุดที่ต้องจำ <span class="hint" style="display:inline">แตะเพื่อเพิ่ม</span></span>
+      <div class="chips" id="hlChips"></div>
+      <div class="hl" id="fHl"></div>
+    </div>
+    <div class="stack" style="gap:8px"><span style="font-weight:600">คะแนนแยก <span class="hint" style="display:inline">ไม่บังคับ</span></span><div class="subpick" id="fSubs"></div></div>
+    <label class="f"><span>บันทึกเพิ่มเติม</span><textarea id="fNote" placeholder="อะไรที่อยากให้ตัวเองหรือแฟนรู้ตอนกลับมาอีก"></textarea></label>
+    <div class="two">
+      <label class="f"><span>ไปเมื่อ</span><input type="date" id="fDate"></label>
+      <label class="f"><span>ราคา</span><input id="fPrice" placeholder="เช่น 4,500 บาท/คืน"></label>
+    </div>
+    <label class="f"><span>อยู่ในทริป (จาก TripBudget)</span><select id="fTrip"></select></label>
+    <label class="f"><span>จะกลับมาอีกไหม</span><select id="fAgain"><option value="">ยังไม่แน่ใจ</option><option value="yes">กลับมาอีกแน่</option><option value="maybe">ถ้าผ่านก็แวะ</option><option value="no">ไม่กลับมาแล้ว</option></select></label>
+    <p class="banner err" id="fErr" hidden></p>
+    <button class="btn pri block" type="submit" id="fSave">บันทึก</button>
+  </form>
+
+  <!-- SETTINGS -->
+  <section id="vSettings" class="stack" hidden>
+    <div class="banner" id="setupIntro">เชื่อมกับ Google Sheet ของคุณก่อนเริ่มใช้ ทำครั้งเดียว แล้วใส่ค่าเดียวกันในมือถือของแฟน ทั้งสองคนจะเห็นรีวิวชุดเดียวกัน</div>
+    <label class="f"><span>ชื่อของคุณ</span><input id="sWho" placeholder="เช่น Focus"></label>
+    <label class="f"><span>URL เว็บแอป (Apps Script)</span><input id="sUrl" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+    <label class="f"><span>รหัสเข้าแอป</span><input id="sKey" placeholder="รหัสที่ได้จากการรัน setup"></label>
+    <p class="banner err" id="sErr" hidden></p>
+    <button class="btn pri block" id="sSave">บันทึกและทดสอบการเชื่อมต่อ</button>
+    <details>
+      <summary style="cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center">วิธีตั้งค่า Google Sheet (ทำครั้งเดียว)</summary>
+      <ol class="guide">
+        <li>สร้าง Google Sheet ใหม่ ตั้งชื่อเช่น "ที่นี่ดี"</li>
+        <li>เมนู ส่วนขยาย → Apps Script แล้ววางโค้ดจากไฟล์ <code>apps-script/Code.gs</code> ใน repo แทนของเดิม กดบันทึก</li>
+        <li>เลือกฟังก์ชัน <code>setup</code> แล้วกด "เรียกใช้" อนุญาตสิทธิ์ จากนั้นดู "รหัสเข้าแอป" ในบันทึกการดำเนินการด้านล่าง</li>
+        <li>กด "ทำให้ใช้งานได้" → "การทำให้ใช้งานได้รายการใหม่" → ประเภท "เว็บแอป" → เรียกใช้ในฐานะ "ฉัน" → ผู้ที่มีสิทธิ์เข้าถึง "ทุกคน" → คัดลอก URL ที่ลงท้าย <code>/exec</code></li>
+        <li>ใส่ URL และรหัสตรงนี้ แล้วส่งสองค่านี้ให้แฟนใส่ในมือถือของเขา</li>
+      </ol>
+    </details>
+    <p class="hint">รหัสและ URL เก็บไว้ในเครื่องนี้เท่านั้น อย่าส่งให้คนอื่น ถ้าเผลอส่ง ให้รันฟังก์ชัน <code>resetKey</code> ใน Apps Script เพื่อเปลี่ยนรหัส</p>
+  </section>
+</main>
+
+<button class="fab" id="fab" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>รีวิวที่นี่</button>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const dLabel=d=>{if(!d)return'';const[y,m,dd]=d.split('-').map(Number);return`${dd} ${TH_M[m-1]} ${y}`};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+/* ---------- what each type asks for ---------- */
+const TYPES={
+  stay:{th:'ที่พัก',hl:['เห็นวิวจากห้อง','ห้องที่ควรขอ','เวลาที่ควรไป','ต้องจองก่อน','การเดินทาง','ข้อเสีย'],subs:['วิว','ความสะอาด','อาหารเช้า','คุ้มค่า'],tint:'--sky'},
+  food:{th:'ร้านอาหาร',hl:['เมนูเด็ด','เวลาที่ควรไป','ต้องจองก่อน','ราคา','ข้อเสีย'],subs:['รสชาติ','บริการ','บรรยากาศ','คุ้มค่า'],tint:'--sand'},
+  spot:{th:'ที่เที่ยว',hl:['มุมถ่ายรูป','เวลาที่ควรไป','ค่าเข้า','การเดินทาง','ข้อเสีย'],subs:['วิว','คนไม่เยอะ','เดินทางง่าย','คุ้มค่า'],tint:'--rose'}};
+const AGAIN={yes:'กลับมาอีกแน่',maybe:'ถ้าผ่านก็แวะ',no:'ไม่กลับมาแล้ว'};
+
+/* ---------- connection ---------- */
+let cfg=store.get('tnd_cfg',{url:'',key:'',who:''});
+const ready=()=>!!(cfg.url&&cfg.key);
+async function api(action,data={}){
+  if(!ready())throw new Error('ยังไม่ได้เชื่อม Google Sheet');
+  let r;
+  try{r=await fetch(cfg.url,{method:'POST',body:JSON.stringify({action,key:cfg.key,who:cfg.who,...data})})}
+  catch(e){throw new Error(navigator.onLine?'ติดต่อ Google Sheet ไม่ได้ เช็ก URL อีกครั้ง':'ไม่มีอินเทอร์เน็ต')}
+  let j;try{j=await r.json()}catch(e){throw new Error('URL นี้ไม่ใช่เว็บแอปของที่นี่ดี เช็กว่าลงท้ายด้วย /exec และตั้ง "ทุกคน" เข้าถึงได้')}
+  if(!j.ok)throw new Error(j.error||'มีข้อผิดพลาด');return j}
+
+/* ---------- data ---------- */
+let items=store.get('tnd_cache',[]);
+let view='list',current=null,typeFilter='all',tripFilter='';
+const photoUrl=(id,w=1000)=>`https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+async function load(silent){
+  if(!ready()){showStatus('');return}
+  if(!silent)showStatus('กำลังโหลด…');
+  try{const j=await api('list');items=j.items.sort((a,b)=>(b.visitDate||b.createdAt||'').localeCompare(a.visitDate||a.createdAt||''));store.set('tnd_cache',items);showStatus('');
+    if(view==='list')renderList();else if(view==='detail'&&current){const n=items.find(x=>x.id===current.id);if(n){current=n;renderDetail()}}}
+  catch(e){showStatus(e.message+(items.length?' · แสดงข้อมูลล่าสุดที่โหลดไว้':''),true)}}
+function showStatus(m,err){const s=$('#status');s.textContent=m;s.hidden=!m;s.classList.toggle('err',!!err)}
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+
+/* ---------- trips from TripBudget (same site, read only) ---------- */
+function tbTrips(){const db=store.get('tb_v4',null);if(!db||!Array.isArray(db.trips))return[];return db.trips.filter(t=>t&&t.id).map(t=>({id:t.id,name:t.name||'ทริปไม่มีชื่อ',start:t.startDate||''}))}
+function tripName(it){if(!it.trip)return'';const t=tbTrips().find(x=>x.id===it.trip.id);return t?t.name:(it.trip.name||'')}
+
+/* ---------- views ---------- */
+function show(v){view=v;['List','Detail','Edit','Settings'].forEach(n=>$('#v'+n).hidden=n.toLowerCase()!==v);
+  $('#fab').hidden=v!=='list'||!ready();$('#back').hidden=v==='list';$('#refresh').hidden=v!=='list';
+  const T={list:'ที่นี่ดี<small>สมุดจดที่พัก ร้าน และที่เที่ยวของเรา</small>',detail:'รีวิว',edit:current&&current.id?'แก้ไขรีวิว':'รีวิวที่นี่',settings:'ตั้งค่า'};
+  $('#title').innerHTML=T[v];window.scrollTo(0,0)}
+$('#back').onclick=()=>{if(view==='edit'&&current&&current.id&&items.some(x=>x.id===current.id)){openDetail(current.id)}else{show('list');renderList()}};
+$('#openSettings').onclick=()=>openSettings();
+$('#refresh').onclick=()=>load();
+$('#fab').onclick=()=>openEdit(null);
+
+function renderChips(){const counts={all:items.length};items.forEach(i=>counts[i.type]=(counts[i.type]||0)+1);
+  $('#typeChips').innerHTML=[['all','ทั้งหมด'],...Object.entries(TYPES).map(([k,v])=>[k,v.th])].map(([k,l])=>`<button type="button" class="chip" data-t="${k}" aria-pressed="${typeFilter===k}">${l} ${counts[k]||0}</button>`).join('');
+  const trips=[...new Map(items.filter(i=>i.trip).map(i=>[i.trip.id,tripName(i)])).entries()];
+  $('#tripBar').hidden=!trips.length;$('#tripFilter').innerHTML='<option value="">ทุกทริป</option>'+trips.map(([id,n])=>`<option value="${esc(id)}"${id===tripFilter?' selected':''}>${esc(n)}</option>`).join('')}
+$('#typeChips').onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;typeFilter=b.dataset.t;renderList()};
+$('#tripFilter').onchange=e=>{tripFilter=e.target.value;renderList()};
+$('#q').oninput=()=>renderList();
+
+function cardHtml(i){const T=TYPES[i.type]||TYPES.spot;const hl=(i.highlights||[]).filter(h=>h.text);
+  const tags=hl.slice(0,3).map(h=>`<span class="tag">${esc(h.tag)}</span>`).join('');const line=hl[0]?hl[0].text:(i.note||'');
+  const stars=i.rating?`<span class="stars">★ ${i.rating}</span>`:'';const meta=`<div class="meta"><span class="type">${T.th}</span>${stars}${i.area?`<span>${esc(i.area)}</span>`:''}</div>`;
+  if(i.photos&&i.photos.length)return`<button type="button" class="card" data-id="${esc(i.id)}"><div class="ph" style="background-image:url('${photoUrl(i.photos[0],800)}')"></div>
+    <div class="bd">${meta}<p class="name">${esc(i.name)}</p>${tags?`<div class="tags">${tags}</div>`:''}${line?`<div class="line1">${esc(line)}</div>`:''}</div></button>`;
+  return`<button type="button" class="card" data-id="${esc(i.id)}"><div class="row"><div class="th" style="background:var(${T.tint})">${typeIcon(i.type)}</div>
+    <div style="min-width:0;display:flex;flex-direction:column;gap:3px">${meta}<p class="name" style="font-size:16px">${esc(i.name)}</p>${line?`<div class="line1">${esc(line)}</div>`:''}</div></div></button>`}
+function typeIcon(t){const p={stay:'<path d="M3 20V9l9-5 9 5v11M9 20v-6h6v6"/>',food:'<path d="M7 3v8a2 2 0 0 0 4 0V3M9 11v10M17 3c-2 2-2 6 0 8v10"/>',spot:'<path d="M3 20l7-12 4 6 2-3 5 9z"/>'}[t]||'';
+  return`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${p}</svg>`}
+
+function renderList(){renderChips();const box=$('#list');
+  if(!ready()){box.innerHTML=`<div class="empty"><b>ยังไม่ได้เชื่อม Google Sheet</b>ตั้งค่าครั้งเดียว แล้วคุณกับแฟนจะเห็นรีวิวชุดเดียวกัน<div style="margin-top:12px"><button type="button" class="btn pri" id="goSetup">ไปตั้งค่า</button></div></div>`;$('#goSetup').onclick=()=>openSettings();$('#fab').hidden=true;return}
+  const q=$('#q').value.trim().toLowerCase();
+  const list=items.filter(i=>(typeFilter==='all'||i.type===typeFilter)&&(!tripFilter||(i.trip&&i.trip.id===tripFilter))&&
+    (!q||[i.name,i.area,i.note,...(i.highlights||[]).map(h=>h.tag+' '+h.text)].join(' ').toLowerCase().includes(q)));
+  box.innerHTML=list.length?list.map(cardHtml).join(''):`<div class="empty"><b>${items.length?'ไม่เจอรีวิวที่ตรงกับที่หา':'ยังไม่มีรีวิว'}</b>${items.length?'ลองเปลี่ยนคำค้นหรือประเภท':'แตะ "รีวิวที่นี่" ตอนอยู่ที่ร้าน ที่พัก หรือที่เที่ยว จดไว้ก่อนลืม'}</div>`}
+$('#list').onclick=e=>{const c=e.target.closest('[data-id]');if(c)openDetail(c.dataset.id)};
+
+/* ---------- detail ---------- */
+function openDetail(id){current=items.find(x=>x.id===id);if(!current)return;show('detail');renderDetail()}
+function mapsLink(i){if(i.mapsUrl&&/^https:\/\//.test(i.mapsUrl))return i.mapsUrl;if(i.lat!=null)return`https://www.google.com/maps/search/?api=1&query=${i.lat},${i.lng}`;
+  return`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.name+(i.area?' '+i.area:''))}`}
+function renderDetail(){const i=current,T=TYPES[i.type]||TYPES.spot;const hl=(i.highlights||[]).filter(h=>h.text);const subs=Object.entries(i.subs||{}).filter(([,v])=>v);
+  const by=[i.author&&`จดโดย ${esc(i.author)}`,i.editedBy&&i.editedBy!==i.author&&`แก้ล่าสุดโดย ${esc(i.editedBy)}`].filter(Boolean).join(' · ');
+  $('#vDetail').innerHTML=`
+    ${i.photos&&i.photos.length?`<div class="gallery">${i.photos.map((p,n)=>`<img src="${photoUrl(p,1400)}" alt="รูปที่ ${n+1} ของ ${esc(i.name)}" loading="lazy">`).join('')}</div>`:''}
+    <div class="stack" style="gap:4px">
+      <div class="meta"><span class="type">${T.th}</span>${i.visitDate?`<span>ไปเมื่อ ${dLabel(i.visitDate)}</span>`:''}${i.area?`<span>${esc(i.area)}</span>`:''}</div>
+      <h2 class="title-lg">${esc(i.name)}</h2>
+      <div class="meta" style="font-size:14px">${i.rating?`<span class="stars" style="font-size:18px">★ ${i.rating}</span>`:''}${i.price?`<span>${esc(i.price)}</span>`:''}${i.again?`<span>${AGAIN[i.again]||''}</span>`:''}</div>
+    </div>
+    ${hl.length?`<div class="keep"><h3>จุดที่ต้องจำ</h3>${hl.map(h=>`<div class="it"><b>${esc(h.tag)}</b><span>${esc(h.text)}</span></div>`).join('')}</div>`:''}
+    ${subs.length?`<div class="subs">${subs.map(([k,v])=>`<div class="sub"><span>${esc(k)}</span><b>${v}</b></div>`).join('')}</div>`:''}
+    ${i.note?`<div class="note">${esc(i.note)}</div>`:''}
+    <div class="actions"><a class="btn" href="${esc(mapsLink(i))}" target="_blank" rel="noopener">เปิดใน Google Maps</a>${tripName(i)?`<span class="tag" style="display:inline-flex;align-items:center;min-height:44px;padding:0 12px;font-size:14px">${esc(tripName(i))}</span>`:''}</div>
+    ${by?`<p class="hint">${by}</p>`:''}
+    <div class="actions"><button type="button" class="btn pri" id="dEdit">แก้ไข</button><button type="button" class="btn danger" id="dDel">ลบ</button></div>
+    <div class="confirm" id="dConfirm" hidden><span>ลบรีวิว "${esc(i.name)}" และรูปทั้งหมด? กู้คืนไม่ได้</span><div class="actions"><button type="button" class="btn danger" id="dYes">ลบเลย</button><button type="button" class="btn" id="dNo">ยกเลิก</button></div></div>`;
+  $('#dEdit').onclick=()=>openEdit(current);$('#dDel').onclick=()=>{$('#dConfirm').hidden=false};$('#dNo').onclick=()=>{$('#dConfirm').hidden=true};
+  $('#dYes').onclick=async()=>{const b=$('#dYes');b.disabled=true;b.textContent='กำลังลบ…';
+    try{await api('delete',{id:i.id});items=items.filter(x=>x.id!==i.id);store.set('tnd_cache',items);toast('ลบแล้ว');show('list');renderList()}
+    catch(e){b.disabled=false;b.textContent='ลบเลย';toast(e.message)}}}
+
+/* ---------- edit ---------- */
+let draft=null;
+function openEdit(it){current=it;draft=it?JSON.parse(JSON.stringify(it)):{type:'stay',name:'',area:'',highlights:[],subs:{},photos:[],rating:0,visitDate:new Date().toISOString().slice(0,10)};
+  draft.highlights=draft.highlights||[];draft.subs=draft.subs||{};draft.photos=draft.photos||[];draft._new=[];
+  $('#fName').value=draft.name||'';$('#fArea').value=draft.area||'';$('#fMaps').value=draft.mapsUrl||'';$('#fNote').value=draft.note||'';
+  $('#fDate').value=draft.visitDate||'';$('#fPrice').value=draft.price||'';$('#fAgain').value=draft.again||'';$('#fErr').hidden=true;
+  $('#gpsInfo').textContent=draft.lat!=null?`บันทึกพิกัดไว้แล้ว (${(+draft.lat).toFixed(4)}, ${(+draft.lng).toFixed(4)})`:'';
+  const trips=tbTrips();$('#fTrip').innerHTML='<option value="">ไม่ระบุ</option>'+trips.map(t=>`<option value="${esc(t.id)}"${draft.trip&&draft.trip.id===t.id?' selected':''}>${esc(t.name)}${t.start?' · '+dLabel(t.start):''}</option>`).join('')+
+    (draft.trip&&!trips.some(t=>t.id===draft.trip.id)?`<option value="${esc(draft.trip.id)}" selected>${esc(draft.trip.name)}</option>`:'');
+  $('#fTrip').closest('label').hidden=!trips.length&&!draft.trip;
+  show('edit');renderForm()}
+function renderForm(){const T=TYPES[draft.type];
+  $('#fType').innerHTML=Object.entries(TYPES).map(([k,v])=>`<button type="button" data-k="${k}" aria-pressed="${draft.type===k}">${v.th}</button>`).join('');
+  $('#fStars').innerHTML=[1,2,3,4,5].map(n=>`<button type="button" data-s="${n}" class="${n<=Math.round(draft.rating||0)?'on':''}" aria-label="${n} ดาว" aria-pressed="${n===draft.rating}">★</button>`).join('');
+  $('#hlChips').innerHTML=[...T.hl,'อื่น ๆ'].map(t=>`<button type="button" class="chip" data-h="${esc(t)}">+ ${esc(t)}</button>`).join('');
+  $('#fHl').innerHTML=draft.highlights.map((h,n)=>`<div class="hlrow"><label for="hl${n}">${esc(h.tag)}<input id="hl${n}" data-hi="${n}" value="${esc(h.text)}" placeholder="${esc(hlHint(h.tag))}"></label>
+    <button type="button" class="icon-btn" data-hx="${n}" aria-label="ลบ ${esc(h.tag)}">×</button></div>`).join('');
+  $('#fSubs').innerHTML=T.subs.map(s=>`<span>${esc(s)}</span><div class="mini" role="group" aria-label="${esc(s)}">${[1,2,3,4,5].map(n=>`<button type="button" data-sub="${esc(s)}" data-v="${n}" aria-pressed="${draft.subs[s]===n}">${n}</button>`).join('')}</div>`).join('');
+  renderPhotos()}
+function hlHint(t){return{'เห็นวิวจากห้อง':'เช่น เห็นฟูจิเฉพาะชั้น 4 ฝั่งทะเลสาบ','ห้องที่ควรขอ':'เช่น ห้อง 401–408','เวลาที่ควรไป':'เช่น ก่อน 8 โมง วิวชัดสุด','ต้องจองก่อน':'เช่น ออนเซ็นส่วนตัวจองที่เคาน์เตอร์',
+  'เมนูเด็ด':'เช่น หม้อฟักทอง','มุมถ่ายรูป':'เช่น ขึ้นบันไดไปจุดชมวิวด้านบน','ค่าเข้า':'เช่น 500 เยน','ข้อเสีย':'เช่น ห้องเล็ก เสียงดังจากถนน'}[t]||'จดสั้น ๆ'}
+$('#fType').onclick=e=>{const b=e.target.closest('[data-k]');if(!b)return;draft.type=b.dataset.k;draft.subs={};renderForm()};
+$('#fStars').onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;const n=+b.dataset.s;draft.rating=draft.rating===n?0:n;renderForm()};
+$('#hlChips').onclick=e=>{const b=e.target.closest('[data-h]');if(!b)return;draft.highlights.push({tag:b.dataset.h,text:''});renderForm();const ins=$('#fHl').querySelectorAll('input');ins[ins.length-1].focus()};
+$('#fHl').oninput=e=>{if(e.target.dataset.hi!=null)draft.highlights[+e.target.dataset.hi].text=e.target.value};
+$('#fHl').onclick=e=>{const b=e.target.closest('[data-hx]');if(!b)return;draft.highlights.splice(+b.dataset.hx,1);renderForm()};
+$('#fSubs').onclick=e=>{const b=e.target.closest('[data-sub]');if(!b)return;const k=b.dataset.sub,v=+b.dataset.v;draft.subs[k]=draft.subs[k]===v?0:v;renderForm()};
+
+/* photos: shrink on the phone before upload so a 5 MB camera shot becomes ~300 KB */
+function renderPhotos(){const old=draft.photos.map((p,n)=>`<div class="p" style="background-image:url('${photoUrl(p,300)}')"><button type="button" data-po="${n}" aria-label="เอารูปออก">×</button></div>`);
+  const neu=draft._new.map((p,n)=>`<div class="p" style="background-image:url('${p.preview}')"><button type="button" data-pn="${n}" aria-label="เอารูปออก">×</button></div>`);
+  $('#fPhotos').innerHTML=old.join('')+neu.join('')+(draft.photos.length+draft._new.length<8?'<button type="button" class="add" id="addPhoto">+ รูป<br><span style="font-size:11px">สูงสุด 8</span></button>':'')}
+$('#fPhotos').onclick=e=>{if(e.target.closest('#addPhoto')){$('#fFile').click();return}
+  const o=e.target.closest('[data-po]');if(o){draft.photos.splice(+o.dataset.po,1);renderPhotos();return}
+  const n=e.target.closest('[data-pn]');if(n){draft._new.splice(+n.dataset.pn,1);renderPhotos()}};
+$('#fFile').onchange=async e=>{const files=[...e.target.files].slice(0,8-draft.photos.length-draft._new.length);e.target.value='';
+  for(const f of files){try{draft._new.push(await shrink(f))}catch(err){toast('เปิดรูป '+f.name+' ไม่ได้')}}renderPhotos()};
+function shrink(file,max=1600,q=.82){return new Promise((res,rej)=>{const url=URL.createObjectURL(file);const img=new Image();
+  img.onload=()=>{const s=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);const d=c.toDataURL('image/jpeg',q);res({preview:d,b64:d.split(',')[1],name:(file.name||'photo').replace(/\.[^.]+$/,'')+'.jpg'})};
+  img.onerror=()=>{URL.revokeObjectURL(url);rej()};img.src=url})}
+
+$('#useGps').onclick=()=>{if(!navigator.geolocation){$('#gpsInfo').textContent='เครื่องนี้ไม่รองรับการหาตำแหน่ง';return}
+  $('#gpsInfo').textContent='กำลังหาตำแหน่ง…';
+  navigator.geolocation.getCurrentPosition(p=>{draft.lat=+p.coords.latitude.toFixed(6);draft.lng=+p.coords.longitude.toFixed(6);$('#gpsInfo').textContent=`ได้แล้ว (${draft.lat.toFixed(4)}, ${draft.lng.toFixed(4)})`},
+    ()=>{$('#gpsInfo').textContent='หาตำแหน่งไม่ได้ ลองอนุญาตตำแหน่งในเบราว์เซอร์ หรือวางลิงก์ Google Maps แทน'},{enableHighAccuracy:true,timeout:15000})};
+
+$('#vEdit').onsubmit=async e=>{e.preventDefault();const err=$('#fErr');err.hidden=true;
+  draft.name=$('#fName').value.trim();if(!draft.name){err.textContent='ใส่ชื่อสถานที่ก่อน';err.hidden=false;$('#fName').focus();return}
+  draft.area=$('#fArea').value.trim();draft.mapsUrl=$('#fMaps').value.trim();draft.note=$('#fNote').value.trim();draft.visitDate=$('#fDate').value;draft.price=$('#fPrice').value.trim();draft.again=$('#fAgain').value;
+  const tid=$('#fTrip').value;draft.trip=tid?{id:tid,name:(tbTrips().find(t=>t.id===tid)||draft.trip||{}).name||''}:null;
+  draft.highlights=draft.highlights.filter(h=>h.text.trim()).map(h=>({tag:h.tag,text:h.text.trim()}));
+  Object.keys(draft.subs).forEach(k=>{if(!draft.subs[k])delete draft.subs[k]});
+  const btn=$('#fSave');btn.disabled=true;
+  try{const total=draft._new.length;while(draft._new.length){btn.textContent=`กำลังอัปโหลดรูป ${total-draft._new.length+1}/${total}…`;const p=draft._new[0];
+      const j=await api('upload',{b64:p.b64,mime:'image/jpeg',name:p.name});draft.photos.push(j.photo);draft._new.shift()}
+btn.textContent='กำลังบันทึก…';const it={...draft};delete it._new;
+    const j=await api('save',{item:it});const saved=j.item;const k=items.findIndex(x=>x.id===saved.id);if(k>=0)items[k]=saved;else items.unshift(saved);
+    store.set('tnd_cache',items);toast('บันทึกแล้ว');current=saved;show('detail');renderDetail()}
+  catch(ex){err.textContent=ex.message+(draft.photos.length?' · รูปที่อัปโหลดแล้วจะไม่ต้องอัปซ้ำ':'');err.hidden=false;renderPhotos()}
+  finally{btn.disabled=false;btn.textContent='บันทึก'}};
+
+/* ---------- settings ---------- */
+function openSettings(){$('#sWho').value=cfg.who||'';$('#sUrl').value=cfg.url||'';$('#sKey').value=cfg.key||'';$('#sErr').hidden=true;$('#setupIntro').hidden=ready();current=null;show('settings')}
+$('#sSave').onclick=async()=>{const url=$('#sUrl').value.trim(),key=$('#sKey').value.trim(),who=$('#sWho').value.trim();const err=$('#sErr');err.hidden=true;
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)){err.textContent='URL ต้องเป็นรูปแบบ https://script.google.com/macros/s/…/exec';err.hidden=false;return}
+  if(!key){err.textContent='ใส่รหัสเข้าแอป';err.hidden=false;return}
+  const prev=cfg;cfg={url,key,who};const b=$('#sSave');b.disabled=true;b.textContent='กำลังทดสอบ…';
+  try{await api('ping');store.set('tnd_cfg',cfg);toast('เชื่อมต่อสำเร็จ');show('list');renderList();load()}
+  catch(e){cfg=prev;err.textContent=e.message;err.hidden=false}finally{b.disabled=false;b.textContent='บันทึกและทดสอบการเชื่อมต่อ'}};
+
+/* ---------- start ---------- */
+show('list');renderList();if(ready())load(items.length>0);else if(!items.length)openSettings();
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&view==='list')load(true)});
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
